@@ -1,0 +1,198 @@
+
+import { useState } from "react";
+import { Text, View, StyleSheet, FlatList } from "react-native";
+type Evenement = {
+  id: string;
+  titre: string;
+  categorie: string;
+  capacite: number;
+  inscrits: number;
+};
+let evenements: Evenement[] = [
+  { id: "E01", titre: "Atelier React", categorie: "Atelier", capacite: 25, inscrits: 25 },
+  { id: "E02", titre: "Conférence IA", categorie: "Conférence", capacite: 70, inscrits: 52 },
+  { id: "E03", titre: "Sécurité mobile", categorie: "Atelier", capacite: 20, inscrits: 17 },
+  { id: "E04", titre: "Design UI", categorie: "Atelier", capacite: 18, inscrits: 9 },
+  { id: "E05", titre: "Forum projets", categorie: "Rencontre", capacite: 50, inscrits: 49 },
+  { id: "E06", titre: "Découverte Git", categorie: "Atelier", capacite: 24, inscrits: 24 },
+];
+function placesRestantes(e: Evenement) {
+  let places = e.capacite - e.inscrits;
+  if (places < 0) {
+    places = 0;
+  }
+  return places;
+}
+function statutEvenement(e: Evenement) {
+  let places = placesRestantes(e);
+  if (places === 0) {
+    return "Complet";
+  } else if (places <= 3) {
+    return "Presque complet";
+  } else {
+    return "Ouvert";
+  }
+}
+let totalEvenements = evenements.length;
+let evenementsComplets = evenements.filter(e => statutEvenement(e) === "Complet").length;
+let evenementsAvecPlaces = evenements.filter(e => placesRestantes(e) > 0).length;
+let totalPlacesRestantes = 0;
+for (let e of evenements) {
+  totalPlacesRestantes = totalPlacesRestantes + placesRestantes(e);
+}
+let ateliersDisponibles: Evenement[] = [];
+for (let e of evenements) {
+  if (e.categorie === "Atelier" && placesRestantes(e) > 0) {
+    ateliersDisponibles.push(e);
+  }
+}
+function BadgeEtat({ statut }: { statut: string }) {
+  let couleur = "green";
+  if (statut === "Complet") {
+    couleur = "red";
+  } else if (statut === "Presque complet") {
+    couleur = "orange";
+  }
+  return (
+    <Text style={{ color: couleur }}>
+      {statut}
+    </Text>
+  );
+}
+function CarteEvenement({ evenement }: { evenement: Evenement }) {
+  return (
+    <View style={styles.carte}>
+      <Text>{evenement.titre}</Text>
+      <Text>Catégorie : {evenement.categorie}</Text>
+      <Text>Places restantes : {placesRestantes(evenement)}</Text>
+      <BadgeEtat statut={statutEvenement(evenement)} />
+    </View>
+  );
+}
+function BlocStatistique({ libelle, nombre }: { libelle: string; nombre: number }) {
+  return (
+    <View style={styles.carte}>
+      <Text>{libelle}</Text>
+      <Text>{nombre}</Text>
+    </View>
+  );
+}
+const styles = StyleSheet.create({
+  carte: {
+    backgroundColor: "white",
+    padding: 15,
+    margin: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "gray",
+  },
+  titre: {
+    fontSize: 26,
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#256b50",
+    marginTop: 20,
+  },
+  sousTitre: {
+    fontSize: 16,
+    textAlign: "center",
+    color: "gray",
+    marginBottom: 20,
+  },
+  statistiques: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  titreListe: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginTop: 20,
+    marginBottom: 10,
+  },
+  messageVide: {
+    textAlign: "center",
+    marginTop: 30,
+    color: "gray",
+    fontSize: 16,
+  },
+});
+export default function App() {
+  const [mode, setMode] = useState<"tous" | "ateliers">("tous");
+  const evenementsAffiches =
+    mode === "tous" ? evenements : ateliersDisponibles;
+  return (
+    <View style={{ flex: 1, backgroundColor: "#f5f5f5" }}>
+      <FlatList
+        data={evenementsAffiches}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ padding: 15 }}
+        ListHeaderComponent={
+          <View>
+            <Text style={styles.titre}>
+              CampusAgenda
+            </Text>
+            <Text style={styles.sousTitre}>
+              Événements du campus
+            </Text>
+            <View style={styles.statistiques}>
+              <BlocStatistique
+                libelle="Événements au total"
+                nombre={totalEvenements}
+              />
+              <BlocStatistique
+                libelle="Événements complets"
+                nombre={evenementsComplets}
+              />
+              <BlocStatistique
+                libelle="Événements avec des places"
+                nombre={evenementsAvecPlaces}
+              />
+              <BlocStatistique
+                libelle="Places restantes"
+                nombre={totalPlacesRestantes}
+              />
+            </View>
+            <View style={{ flexDirection: "row", justifyContent: "space-around", marginVertical: 15 }}>
+              <Text
+                onPress={() => setMode("tous")}
+                style={{
+                  backgroundColor: mode === "tous" ? "#256b50" : "white",
+                  color: mode === "tous" ? "white" : "#256b50",
+                  padding: 12,
+                  borderRadius: 8,
+                }}
+              >
+                Tous
+              </Text>
+              <Text
+                onPress={() => setMode("ateliers")}
+                style={{
+                  backgroundColor: mode === "ateliers" ? "#256b50" : "white",
+                  color: mode === "ateliers" ? "white" : "#256b50",
+                  padding: 12,
+                  borderRadius: 8,
+                }}
+              >
+                Ateliers disponibles
+              </Text>
+            </View>
+            <Text style={styles.titreListe}>
+              {mode === "tous"
+                ? "Tous les événements"
+                : "Ateliers disponibles"}
+            </Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <CarteEvenement evenement={item} />
+        )}
+        ListEmptyComponent={
+          <Text style={styles.messageVide}>
+            Aucun atelier disponible.
+          </Text>
+        }
+      />
+    </View>
+  );
+}
